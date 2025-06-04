@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Responsive, WidthProvider } from 'react-grid-layout';
+import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { 
@@ -39,7 +39,7 @@ import {
   Brain,
   Command,
   Book,
-  Layout,
+  Layout as LucideLayout,
   Compass,
   Copy,
   Edit,
@@ -63,23 +63,7 @@ import ResizableWidget, {
   DEFAULT_SIZE_CONSTRAINTS 
 } from './widget-components/ResizableWidget';
 import { useTheme } from '../hooks/useTheme';
-
-// Extend Window interface to include electron
-declare global {
-  interface Window {
-    electron: {
-      getWorkflowsPath: () => Promise<string>;
-      getPythonPort: () => Promise<number>;
-      checkPythonBackend: () => Promise<{ port: number; status: string; available: boolean }>;
-      receive: (channel: string, func: (data: any) => void) => void;
-      removeListener: (channel: string, func: (data: any) => void) => void;
-    };
-  }
-}
-
-interface DashboardProps {
-  onPageChange?: (page: string) => void;
-}
+import { getElectronBridge } from '../services/electronBridge';
 
 // Default widget configuration for first-time users only
 const DEFAULT_WIDGETS = [
@@ -111,16 +95,42 @@ interface ContextMenuState {
   widgetId?: string;
 }
 
+interface Layouts {
+  [key: string]: Layout[];
+}
+
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
+interface DashboardProps {
+  onPageChange?: (page: string) => void;
+}
+
+type ConnectionStatus = 'connected' | 'disconnected' | 'checking';
+
+interface PythonStatus {
+  port: number;
+  status: ConnectionStatus;
+  available: boolean;
+}
+
+interface BackendStatus {
+  port?: number;
+  status: string;
+  available: boolean;
+}
+
+export default function Dashboard({ onPageChange }: DashboardProps) {
   const { isDark } = useTheme();
   const [ollamaUrl, setOllamaUrl] = useState('');
   const [isConfiguring, setIsConfiguring] = useState(false);
-  const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [ollamaStatus, setOllamaStatus] = useState<ConnectionStatus>('checking');
   const [showOllamaUrlInput, setShowOllamaUrlInput] = useState(false);
-  const [pythonStatus, setPythonStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
-  const [pythonPort, setPythonPort] = useState<number | null>(null);
+  const [pythonStatus, setPythonStatus] = useState<PythonStatus>({
+    port: 5000,
+    status: 'checking',
+    available: false
+  });
+  const [pythonPort, setPythonPort] = useState<number>(5000); // Default to 5000
   const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
   const [reconnectError, setReconnectError] = useState<string | null>(null);
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
@@ -188,55 +198,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
         setOllamaStatus('disconnected');
       }
       
-      if (window.electron) {
-        try {
-          const port = await window.electron.getPythonPort();
-          setPythonPort(port);
-        } catch (error) {
-          console.error('Could not get Python port from Electron:', error);
-        }
-      
-        try {
-          const backendStatus = await window.electron.checkPythonBackend();
-          if (backendStatus.port) {
-            setPythonPort(backendStatus.port);
-          }
-          
-          if (backendStatus.status === 'running' && backendStatus.available) {
-            setPythonStatus('connected');
-          } else {
-            checkPythonConnection();
-          }
-        } catch (error) {
-          console.error('Error checking Python backend:', error);
-          checkPythonConnection();
-        }
-      } else {
-        checkPythonConnection();
+      if (pythonStatus.port) {
+        setPythonPort(pythonStatus.port);
       }
     };
     
     loadConfig();
-    
-    if (window.electron) {
-      const backendStatusListener = (status: any) => {
-        if (status.port) {
-          setPythonPort(status.port);
-        }
-        
-        if (status.status === 'running') {
-          checkPythonConnection();
-        } else if (['crashed', 'failed', 'stopped'].includes(status.status)) {
-          setPythonStatus('disconnected');
-        }
-      };
-      
-      window.electron.receive('backend-status', backendStatusListener);
-      return () => {
-        window.electron.removeListener('backend-status', backendStatusListener);
-      };
-    }
-  }, []);
+  }, [pythonStatus.port]);
 
   // Save widgets to localStorage whenever they change
   useEffect(() => {
@@ -298,33 +266,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
   };
 
   const checkPythonConnection = async () => {
-    setPythonStatus('checking');
     setIsReconnecting(true);
     setReconnectError(null);
     
     try {
-      const health = await api.checkHealth();
+      const response = await fetch(`http://65.0.11.70:${pythonPort}/health`);
+      const health = await response.json();
       
-      if (health.status === 'connected') {
-        setPythonStatus('connected');
-        if (health.port && health.port !== pythonPort) {
-          setPythonPort(health.port);
-        }
-        try {
-          const result = await api.getTest();
-          if (!result) {
-            console.warn('Test endpoint returned empty result');
-          }
-        } catch (testError) {
-          console.warn('Test endpoint error:', testError);
-        }
-      } else {
-        setPythonStatus('disconnected');
-        setReconnectError('Failed to connect to Python backend');
-      }
+      setPythonStatus(prev => ({
+        ...prev,
+        status: health.status === 'ok' ? 'connected' : 'disconnected',
+        available: health.status === 'ok'
+      }));
+      
     } catch (error: any) {
       console.error('Python backend check failed:', error);
-      setPythonStatus('disconnected');
+      setPythonStatus(prev => ({
+        ...prev,
+        status: 'disconnected',
+        available: false
+      }));
       setReconnectError(error.message);
     } finally {
       setIsReconnecting(false);
@@ -739,6 +700,70 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
     input.click();
   };
 
+  useEffect(() => {
+    const electron = getElectronBridge();
+    
+    // Get workflows path
+    electron.getWorkflowsPath().then(path => {
+      setOllamaUrl(path);
+    }).catch(error => {
+      console.error('Failed to get workflows path:', error);
+    });
+
+    // Check Python backend status
+    electron.checkPythonBackend().then(isAvailable => {
+      setPythonStatus(prev => ({
+        ...prev,
+        status: isAvailable ? 'connected' : 'disconnected',
+        available: isAvailable
+      }));
+      setOllamaStatus(isAvailable ? 'connected' : 'disconnected');
+    }).catch(error => {
+      console.error('Failed to check Python backend:', error);
+      setPythonStatus(prev => ({
+        ...prev,
+        status: 'disconnected',
+        available: false
+      }));
+      setOllamaStatus('disconnected');
+    });
+
+    // Get Python port
+    electron.getPythonPort().then(port => {
+      setPythonPort(port);
+      setPythonStatus(prev => ({
+        ...prev,
+        port
+      }));
+    }).catch(error => {
+      console.error('Failed to get Python port:', error);
+    });
+
+    // Set up status listener
+    electron.receive('status', (data: any) => {
+      console.log('Status update:', data);
+      if (data.type === 'python') {
+        const newStatus = data.status as ConnectionStatus || 'disconnected';
+        setPythonStatus(prev => ({
+          ...prev,
+          port: data.port || prev.port,
+          status: newStatus,
+          available: data.available || false
+        }));
+        setOllamaStatus(newStatus);
+      }
+    });
+
+    // Cleanup
+    return () => {
+      electron.removeListener('status');
+    };
+  }, []);
+
+  useEffect(() => {
+    setPythonPort(pythonStatus.port);
+  }, [pythonStatus.port]);
+
   return (
     <div 
       id="dashboard-container"
@@ -972,6 +997,4 @@ const Dashboard: React.FC<DashboardProps> = ({ onPageChange }) => {
       )}
     </div>
   );
-};
-
-export default Dashboard;
+}

@@ -1,10 +1,12 @@
 /**
  * API client for Python backend with auto-discovery and retry capabilities
  */
+import { getElectronBridge } from './electronBridge';
+
 class PythonApi {
   constructor() {
-    this.baseUrl = null;
     this.port = null;
+    this.baseUrl = null;
     this.initialized = false;
     this.initPromise = null;
     this.retryTimeout = null;
@@ -67,25 +69,25 @@ class PythonApi {
     
     this.initPromise = new Promise(async (resolve) => {
       try {
-        // Try to get port from Electron first
-        if (window.electron) {
-          try {
-            this.port = await window.electron.getPythonPort();
-            if (this.port) {
-              this.baseUrl = `http://65.0.11.70:${this.port}`;
-              console.log('API initialized with port from Electron:', this.port);
-              this.initialized = true;
-              resolve({ port: this.port });
-              this.processQueue();
-              return;
-            }
-          } catch (error) {
-            console.warn('Failed to get Python port from Electron:', error);
+        const electron = getElectronBridge();
+        try {
+          this.port = await electron.getPythonPort();
+          if (this.port) {
+            this.baseUrl = `http://65.0.11.70:${this.port}`;
+            console.log('API initialized with port from Electron:', this.port);
+            this.initialized = true;
+            resolve({ port: this.port });
+            this.processQueue();
+            return;
           }
+        } catch (error) {
+          console.warn('Failed to get Python port from Electron:', error);
         }
         
-        // If still not initialized, try to detect port by probing
-        await this.detectPortByProbing();
+        // If still not initialized, use default port
+        this.port = 5000;
+        this.baseUrl = `http://65.0.11.70:${this.port}`;
+        this.initialized = true;
         resolve({ port: this.port });
         this.processQueue();
       } catch (error) {
@@ -163,11 +165,8 @@ class PythonApi {
     console.log(`Processing ${this.requestQueue.length} queued requests`);
     
     while (this.requestQueue.length > 0) {
-      const { method, args, resolve, reject } = this.requestQueue.shift();
-      
-      this[method](...args)
-        .then(resolve)
-        .catch(reject);
+      const { request, resolve, reject } = this.requestQueue.shift();
+      this.makeRequest(request).then(resolve).catch(reject);
     }
   }
 
@@ -187,151 +186,46 @@ class PythonApi {
    * Get test data from the backend with retries
    */
   async getTest() {
-    try {
-      // Try the root endpoint first as it's more reliable
-      const rootCheck = await this.get('/');
-      if (rootCheck && rootCheck.status === 'ok') {
-        return this.get('/test');
-      }
-      return null;
-    } catch (error) {
-      console.warn('Root check failed, trying direct test endpoint');
-      return this.get('/test');
-    }
+    return this.makeRequest({ url: '/test' });
   }
 
   /**
    * Check health of the backend
    */
   async checkHealth() {
-    try {
-      const status = await this.get('/');
-      return {
-        status: 'connected',
-        port: this.port,
-        info: status
-      };
-    } catch (error) {
-      console.error('Backend health check failed:', error);
-      return {
-        status: 'disconnected',
-        error: error.message
-      };
-    }
+    return this.makeRequest({ url: '/health' });
   }
 
   /**
-   * Make a GET request to the backend with enhanced error handling
+   * Make an HTTP request to the Python backend
    */
-  async get(endpoint, options = {}) {
-    // Support for request queueing
-    if (!this.initialized && this.initPromise) {
+  async makeRequest(request) {
+    if (!this.initialized) {
       return new Promise((resolve, reject) => {
-        console.log(`Queueing GET request to ${endpoint}`);
-        this.requestQueue.push({ method: 'get', args: [endpoint, options], resolve, reject });
+        this.requestQueue.push({ request, resolve, reject });
       });
     }
-    
-    try {
-      await this.ensureInitialized();
-      
-      const url = `${this.baseUrl}${endpoint}`;
-      console.log(`API GET: ${url}`);
-      
-      // Create request with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options.timeout || 5000);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          ...(options.headers || {})
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const error = new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        error.status = response.status;
-        throw error;
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error(`API error (${endpoint}):`, error);
-      
-      // Enhanced error handling with auto-reconnect for network errors
-      if (error.name === 'AbortError' || 
-          error.message.includes('Failed to fetch') || 
-          error.message.includes('NetworkError') ||
-          error.message.includes('ECONNREFUSED')) {
-        this.initialized = false;
-        
-        // Increase retry count
-        this.currentRetry++;
-        
-        if (this.currentRetry <= this.maxRetries) {
-          console.log(`Scheduling reconnect attempt ${this.currentRetry}/${this.maxRetries}`);
-          this.scheduleReconnect(1000 * Math.pow(2, this.currentRetry - 1)); // Exponential backoff
-          
-          // Queue this request to retry after reconnect
-          return new Promise((resolve, reject) => {
-            this.requestQueue.push({ method: 'get', args: [endpoint, options], resolve, reject });
-          });
-        }
-      }
-      
-      throw error;
-    }
-  }
 
-  /**
-   * Make a POST request to the backend
-   */
-  async post(endpoint, data, options = {}) {
-    // Check if a retry is already in progress
-    if (!this.initialized && this.initPromise) {
-      // Queue the request to be processed after initialization
-      return new Promise((resolve, reject) => {
-        this.requestQueue.push({ method: 'post', args: [endpoint, data, options], resolve, reject });
-      });
-    }
-    
     try {
-      await this.ensureInitialized();
-      
-      const url = `${this.baseUrl}${endpoint}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        ...options,
+      const response = await fetch(`${this.baseUrl}${request.url}`, {
+        method: request.method || 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...(options.headers || {})
+          ...request.headers
         },
-        body: JSON.stringify(data)
+        body: request.body ? JSON.stringify(request.body) : undefined
       });
-      
+
       if (!response.ok) {
-        const error = new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        error.status = response.status;
-        throw error;
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      return await response.json();
+
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error(`API error (${endpoint}):`, error);
-      
-      // If the error is due to connection issues, try to reconnect
-      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-        this.initialized = false;
-        this.scheduleReconnect();
-      }
-      
+      console.error('API request failed:', error);
+      this.initialized = false;
+      this.scheduleReconnect();
       throw error;
     }
   }
@@ -354,3 +248,4 @@ class PythonApi {
 // Create singleton instance
 const api = new PythonApi();
 export default api;
+
