@@ -56,7 +56,7 @@ export class InterpreterClient {
   private modelSelectionMode: 'auto' | 'manual' | 'smart' = 'manual';
   private currentConversationId: string | null = null;
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
+  constructor(baseUrl: string = 'http://65.0.11.70:8000') {
     this.baseUrl = baseUrl;
     this.loadModelConfig();
     // Initialize lastKnownFiles
@@ -205,7 +205,7 @@ export class InterpreterClient {
           api_base = dockerFallbackApiBase;
         } else {
           // Try localhost as secondary fallback
-          const localFallbackApiBase = 'http://localhost:11434';
+          const localFallbackApiBase = 'http://65.0.11.70:11434';
           if (await isApiBaseReachable(localFallbackApiBase)) {
             api_base = localFallbackApiBase;
           }

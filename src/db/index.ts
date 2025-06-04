@@ -1155,7 +1155,7 @@ export class LocalStorageDB {
         await this.addProvider({
           name: "Clara's Core",
           type: 'claras-pocket',
-          baseUrl: 'http://localhost:8091/v1',
+          baseUrl: 'http://65.0.11.70:8091/v1',
           isEnabled: true,
           isPrimary: true,
           config: {
@@ -1173,7 +1173,7 @@ export class LocalStorageDB {
         console.log('Checking for existing Ollama installation...');
         try {
           // Test if Ollama is running on standard port
-          const response = await fetch('http://localhost:11434/api/tags', {
+          const response = await fetch('http://65.0.11.70:11434/api/tags', {
             method: 'GET',
             signal: AbortSignal.timeout(3000) // 3 second timeout
           });
@@ -1183,7 +1183,7 @@ export class LocalStorageDB {
             await this.addProvider({
               name: 'Ollama (Local)',
               type: 'ollama',
-              baseUrl: 'http://localhost:11434/v1',
+              baseUrl: 'http://65.0.11.70:11434/v1',
               apiKey: 'ollama', // Ollama doesn't require a real API key
               isEnabled: true,
               isPrimary: false, // Clara's Core should remain primary

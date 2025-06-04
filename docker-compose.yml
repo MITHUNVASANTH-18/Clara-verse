@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8069:8069"
+    environment:
+      - VITE_API_URL=http://65.0.11.70:8000
+      - VITE_N8N_URL=http://65.0.11.70:5678
+    depends_on:
+      - backend
+      - n8n
+    networks:
+      - clara-network
+
+  backend:
+    build:
+      context: ./py_backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./py_backend:/app
+      - backend_data:/app/data
+    networks:
+      - clara-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_EDITOR_BASE_URL=http://65.0.11.70:5678
+      - WEBHOOK_URL=http://65.0.11.70:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - clara-network
+
+networks:
+  clara-network:
+    driver: bridge
+
+volumes:
+  backend_data:
+  n8n_data: 

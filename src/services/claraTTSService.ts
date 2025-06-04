@@ -35,7 +35,7 @@ export class ClaraTTSService {
   private audioCache: Map<string, string> = new Map();
   private abortController: AbortController | null = null;
 
-  constructor(baseUrl: string = 'http://localhost:5001') {
+  constructor(baseUrl: string = 'http://65.0.11.70:5001') {
     this.baseUrl = baseUrl;
     this.startHealthChecking();
   }

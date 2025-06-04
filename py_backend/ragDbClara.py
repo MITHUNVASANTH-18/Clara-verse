@@ -21,40 +21,33 @@ logger = logging.getLogger(__name__)
 
 def get_ollama_host():
     """
-    Get the Ollama host based on environment.
-    If OLLAMA_HOST is set, use that.
-    Otherwise try localhost first, then fall back to host.docker.internal if localhost fails.
-    If that fails too, try localhost again as a final fallback.
+    Get the Ollama host to connect to.
+    Try the specified IP first, then fall back to host.docker.internal if that fails.
     """
-    # Check if OLLAMA_HOST environment variable is set
-    ollama_host = os.getenv('OLLAMA_HOST')
-    if ollama_host:
-        return ollama_host
-        
     def try_connection(host):
         try:
             response = requests.get(f'http://{host}:11434/api/tags', timeout=2)
             return response.status_code == 200
-        except (requests.RequestException, requests.Timeout):
+        except:
             return False
+
+    # Try specified IP first
+    if try_connection('65.0.11.70'):
+        return '65.0.11.70'
     
-    # Try localhost first
-    if try_connection('localhost'):
-        return 'localhost'
-    
-    # Try host.docker.internal
-    logger.info("Could not connect to Ollama on localhost, trying host.docker.internal")
+    # If IP fails, try host.docker.internal
+    logger.info("Could not connect to Ollama on IP, trying host.docker.internal")
     if try_connection('host.docker.internal'):
         return 'host.docker.internal'
     
-    # If both failed, try localhost one more time as final fallback
-    logger.info("Could not connect to host.docker.internal, trying localhost again")
-    if try_connection('localhost'):
-        return 'localhost'
+    # If both failed, try IP again as final fallback
+    logger.info("Could not connect to host.docker.internal, trying IP again")
+    if try_connection('65.0.11.70'):
+        return '65.0.11.70'
     
-    # If all attempts failed, return localhost as default
-    logger.warning("All connection attempts failed, defaulting to localhost")
-    return 'localhost'
+    # If all attempts failed, return IP as default
+    logger.warning("All connection attempts failed, defaulting to IP")
+    return '65.0.11.70'
 
 class DocumentAI:
     """

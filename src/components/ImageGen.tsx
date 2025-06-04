@@ -446,7 +446,7 @@ const ImageGen: React.FC<ImageGenProps> = ({ onPageChange }) => {
         const config = await db.getAPIConfig();
         
         // Fix URL construction - don't add http:// if already present
-        const baseUrl = config?.ollama_base_url || 'localhost:11434';
+        const baseUrl = config?.ollama_base_url || 'http://65.0.11.70:11434';
         const url = baseUrl.startsWith('http') ? baseUrl : `http://${baseUrl}`;
         
         // Use the correct API endpoint based on the preferred server and api_type
@@ -483,7 +483,7 @@ const ImageGen: React.FC<ImageGenProps> = ({ onPageChange }) => {
       const config = await db.getAPIConfig();
       
       // Fix URL construction - don't add http:// if already present
-      const baseUrl = config?.ollama_base_url || 'localhost:11434';
+      const baseUrl = config?.ollama_base_url || 'http://65.0.11.70:11434';
       const url = baseUrl.startsWith('http') ? baseUrl : `http://${baseUrl}`;
       
       console.log(`Enhancing with ${enhanceSettings.selectedModel}...`);
@@ -567,7 +567,7 @@ const ImageGen: React.FC<ImageGenProps> = ({ onPageChange }) => {
       const config = await db.getAPIConfig();
       
       // Fix URL construction - don't add http:// if already present
-      const baseUrl = config?.ollama_base_url || 'localhost:11434';
+      const baseUrl = config?.ollama_base_url || 'http://65.0.11.70:11434';
       const url = baseUrl.startsWith('http') ? baseUrl : `http://${baseUrl}`;
       
       // Use the correct API type

@@ -11,11 +11,11 @@ interface OllamaContextType {
   refreshModels: () => void;
 }
 
-const DEFAULT_LOCALHOST_URL = 'http://localhost:11434';
+const DEFAULT_IP_URL = 'http://65.0.11.70:11434';
 const DEFAULT_DOCKER_URL = 'http://host.docker.internal:11434';
 
 const OllamaContext = createContext<OllamaContextType>({
-  baseUrl: DEFAULT_LOCALHOST_URL,
+  baseUrl: DEFAULT_IP_URL,
   setBaseUrl: () => {},
   client: null,
   availableModels: [],
@@ -27,7 +27,7 @@ const OllamaContext = createContext<OllamaContextType>({
 export const useOllama = () => useContext(OllamaContext);
 
 export const OllamaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [baseUrl, setBaseUrl] = useState<string>(DEFAULT_LOCALHOST_URL);
+  const [baseUrl, setBaseUrl] = useState<string>(DEFAULT_IP_URL);
   const [client, setClient] = useState<OllamaClient | null>(null);
   const [availableModels, setAvailableModels] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -58,10 +58,10 @@ export const OllamaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Initialize connection with fallback
   useEffect(() => {
     const initializeConnection = async () => {
-      // Try localhost first
-      if (await testOllamaConnection(DEFAULT_LOCALHOST_URL)) {
-        setBaseUrl(DEFAULT_LOCALHOST_URL);
-        const newClient = new OllamaClient(DEFAULT_LOCALHOST_URL);
+      // Try IP first
+      if (await testOllamaConnection(DEFAULT_IP_URL)) {
+        setBaseUrl(DEFAULT_IP_URL);
+        const newClient = new OllamaClient(DEFAULT_IP_URL);
         setClient(newClient);
         refreshModels(newClient);
       } 
@@ -80,7 +80,7 @@ export const OllamaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Handle manual URL changes
   useEffect(() => {
-    if (baseUrl !== DEFAULT_LOCALHOST_URL && baseUrl !== DEFAULT_DOCKER_URL) {
+    if (baseUrl !== DEFAULT_IP_URL && baseUrl !== DEFAULT_DOCKER_URL) {
       const newClient = new OllamaClient(baseUrl);
       setClient(newClient);
       refreshModels(newClient);

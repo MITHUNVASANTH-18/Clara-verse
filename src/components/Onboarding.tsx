@@ -37,8 +37,8 @@ const Onboarding = ({onComplete}: OnboardingProps) => {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         theme_preference: 'dark' as 'light' | 'dark' | 'system', // Default to dark mode
         avatar_url: '',
-        ollama_url: 'http://localhost:11434',
-        comfyui_url: 'http://localhost:8188',
+        ollama_url: 'http://65.0.11.70:11434',
+        comfyui_url: 'http://65.0.11.70:8188',
         openai_api_key: '',
         openai_base_url: 'https://api.openai.com/v1',
         api_type: 'ollama' as 'ollama' | 'openai'
@@ -445,7 +445,7 @@ const Onboarding = ({onComplete}: OnboardingProps) => {
                                                 setPingStatus('idle');
                                             }}
                                             className="flex-1 px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-                                            placeholder="http://localhost:11434"
+                                            placeholder="http://65.0.11.70:11434"
                                         />
                                         <button
                                             onClick={() => pingOllamaServer(formData.ollama_url)}
@@ -580,7 +580,7 @@ const Onboarding = ({onComplete}: OnboardingProps) => {
                                         value={formData.comfyui_url}
                                         onChange={(e) => setFormData(prev => ({...prev, comfyui_url: e.target.value}))}
                                         className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-                                        placeholder="http://localhost:8188"
+                                        placeholder="http://65.0.11.70:8188"
                                     />
                                 </div>
 

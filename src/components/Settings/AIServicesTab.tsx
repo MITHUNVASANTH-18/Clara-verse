@@ -58,9 +58,9 @@ const AIServicesTab: React.FC<AIServicesTabProps> = ({
       case 'openrouter':
         return { baseUrl: 'https://openrouter.ai/api/v1', name: 'OpenRouter' };
       case 'ollama':
-        return { baseUrl: 'http://localhost:11434/v1', name: 'Ollama' };
+        return { baseUrl: 'http://65.0.11.70:11434/v1', name: 'Ollama' };
       case 'claras-pocket':
-        return { baseUrl: 'http://localhost:8091/v1', name: "Clara's Core" };
+        return { baseUrl: 'http://65.0.11.70:8091/v1', name: "Clara's Core" };
       default:
         return { baseUrl: '', name: '' };
     }
@@ -386,7 +386,7 @@ const AIServicesTab: React.FC<AIServicesTabProps> = ({
               value={apiConfig.comfyui_base_url}
               onChange={(e) => setApiConfig(prev => ({ ...prev, comfyui_base_url: e.target.value }))}
               className="w-full px-4 py-2 rounded-lg bg-white/50 border border-gray-200 focus:outline-none focus:border-sakura-300 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-100"
-              placeholder="http://localhost:8188"
+              placeholder="http://65.0.11.70:8188"
             />
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Connect to your ComfyUI instance for AI image generation

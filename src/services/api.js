@@ -52,7 +52,7 @@ class PythonApi {
     if (port !== this.port || !this.initialized) {
       console.log(`Updating API baseUrl to use port ${port}`);
       this.port = port;
-      this.baseUrl = `http://localhost:${port}`;
+      this.baseUrl = `http://65.0.11.70:${port}`;
       this.initialized = true;
       this.currentRetry = 0;
       this.processQueue();
@@ -72,7 +72,7 @@ class PythonApi {
           try {
             this.port = await window.electron.getPythonPort();
             if (this.port) {
-              this.baseUrl = `http://localhost:${this.port}`;
+              this.baseUrl = `http://65.0.11.70:${this.port}`;
               console.log('API initialized with port from Electron:', this.port);
               this.initialized = true;
               resolve({ port: this.port });
@@ -110,7 +110,7 @@ class PythonApi {
     
     for (const port of ports) {
       try {
-        const response = await fetch(`http://localhost:${port}/`, { 
+        const response = await fetch(`http://65.0.11.70:${port}/`, { 
           method: 'GET',
           headers: { 'Accept': 'application/json' },
           signal: AbortSignal.timeout(500) // Abort after 500ms
@@ -120,7 +120,7 @@ class PythonApi {
           const data = await response.json();
           if (data && data.service === 'Clara Backend') {
             this.port = port;
-            this.baseUrl = `http://localhost:${port}`;
+            this.baseUrl = `http://65.0.11.70:${port}`;
             this.initialized = true;
             console.log(`Detected API on port ${port}`);
             return;
@@ -135,7 +135,7 @@ class PythonApi {
     
     // If we couldn't detect the port, use the default
     this.port = 8099;
-    this.baseUrl = `http://localhost:${this.port}`;
+    this.baseUrl = `http://65.0.11.70:${this.port}`;
     this.initialized = false;
     
     throw new Error('Failed to connect to the Python backend');

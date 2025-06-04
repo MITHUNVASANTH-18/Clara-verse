@@ -17,7 +17,7 @@ export class ClaraInterpreter {
 
   constructor(config: ClaraInterpreterConfig = {}) {
     this.config = {
-      baseUrl: config.baseUrl || 'http://localhost:11434',
+      baseUrl: config.baseUrl || 'http://65.0.11.70:11434',
       apiKey: config.apiKey
     };
   }
