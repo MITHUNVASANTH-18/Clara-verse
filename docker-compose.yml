@@ -40,7 +40,6 @@ services:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - NODE_ENV=production
-      - WEBHOOK_URL=http://65.0.11.70:5678/
     volumes:
       - n8n_data:/home/node/.n8n
     networks:

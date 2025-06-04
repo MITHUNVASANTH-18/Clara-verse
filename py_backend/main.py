@@ -303,8 +303,8 @@ class TTSRequest(BaseModel):
 def read_root():
     """Root endpoint for basic health check"""
     return {
-        "status": "ok", 
-        "service": "Clara Backend", 
+        "status": "ok",
+        "service": "Clara Backend",
         "port": PORT,
         "uptime": str(datetime.now() - datetime.fromisoformat(START_TIME)),
         "start_time": START_TIME

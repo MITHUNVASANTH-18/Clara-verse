@@ -27,7 +27,7 @@ class DockerSetup extends EventEmitter {
       python: {
         name: 'clara_python',
         image: 'clara17verse/clara-backend:latest',
-        port: 5001,
+        port: 5000,
         internalPort: 5000,
         healthCheck: this.isPythonRunning.bind(this),
         volumes: [
@@ -67,7 +67,7 @@ class DockerSetup extends EventEmitter {
 
     // Default ports with fallbacks
     this.ports = {
-      python: 5001,
+      python: 5000,
       n8n: 5678,
       ollama: 11434
     };

@@ -105,8 +105,8 @@ class PythonApi {
   async detectPortByProbing() {
     console.log('Detecting backend port by probing...');
     
-    // Try common ports in our range, including 5001 where the backend is currently running
-    const ports = [5001, 8099, 8100, 8098, 8097, 8000, 8080];
+    // Try common ports in our range, starting with port 5000 where the backend is running
+    const ports = [5000, 8099, 8100, 8098, 8097, 8000, 8080];
     
     for (const port of ports) {
       try {
@@ -118,7 +118,7 @@ class PythonApi {
         
         if (response.ok) {
           const data = await response.json();
-          if (data && data.service === 'Clara Backend') {
+          if (data && (data.service === 'Clara Backend' || data.status === 'ok' || data.status === 'healthy')) {
             this.port = port;
             this.baseUrl = `http://65.0.11.70:${port}`;
             this.initialized = true;
@@ -133,8 +133,8 @@ class PythonApi {
     
     console.warn('Failed to detect backend port by probing');
     
-    // If we couldn't detect the port, use the default
-    this.port = 8099;
+    // If we couldn't detect the port, use port 5000 as default
+    this.port = 5000;
     this.baseUrl = `http://65.0.11.70:${this.port}`;
     this.initialized = false;
     
