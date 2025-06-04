@@ -21,7 +21,7 @@ export class ClaraVoiceService {
   private baseUrl: string;
   private abortController: AbortController | null = null;
 
-  constructor(baseUrl: string = 'http://65.0.11.70:5001') {
+  constructor(baseUrl: string = 'http://65.0.11.70:5000') {
     this.baseUrl = baseUrl;
   }
 
