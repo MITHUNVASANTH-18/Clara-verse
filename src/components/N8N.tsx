@@ -165,7 +165,7 @@ const N8N: React.FC<N8NProps> = ({ onPageChange }) => {
 
   const handleOpenExternal = () => {
     if (n8nPort) {
-      window.open(`http://65.0.11.70:${n8nPort}`, '_blank');
+      window.open(`https://n8n.wizzgeeks.com`, '_blank');
     } else {
       setError("Cannot open n8n externally: Port not determined.");
     }
@@ -227,7 +227,7 @@ const N8N: React.FC<N8NProps> = ({ onPageChange }) => {
     webview.addEventListener('dom-ready', handleDomReady);
 
     // Set initial URL
-    const n8nUrl = `http://65.0.11.70:${n8nPort}`;
+    const n8nUrl = `https://n8n.wizzgeeks.com`;
     console.log('Setting n8n URL:', n8nUrl);
     webview.src = n8nUrl;
 

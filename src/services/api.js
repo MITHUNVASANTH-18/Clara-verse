@@ -54,7 +54,7 @@ class PythonApi {
     if (port !== this.port || !this.initialized) {
       console.log(`Updating API baseUrl to use port ${port}`);
       this.port = port;
-      this.baseUrl = `http://65.0.11.70:${port}`;
+      this.baseUrl = `https://n8n.wizzgeeks.com`;
       this.initialized = true;
       this.currentRetry = 0;
       this.processQueue();
@@ -73,7 +73,7 @@ class PythonApi {
         try {
           this.port = await electron.getPythonPort();
           if (this.port) {
-            this.baseUrl = `http://65.0.11.70:${this.port}`;
+            this.baseUrl = `https://n8n.wizzgeeks.com`;
             console.log('API initialized with port from Electron:', this.port);
             this.initialized = true;
             resolve({ port: this.port });
@@ -86,7 +86,7 @@ class PythonApi {
         
         // If still not initialized, use default port
         this.port = 5000;
-        this.baseUrl = `http://65.0.11.70:${this.port}`;
+        this.baseUrl = `https://n8n.wizzgeeks.com`;
         this.initialized = true;
         resolve({ port: this.port });
         this.processQueue();
@@ -112,7 +112,7 @@ class PythonApi {
     
     for (const port of ports) {
       try {
-        const response = await fetch(`http://65.0.11.70:${port}/`, { 
+        const response = await fetch(`https://n8n.wizzgeeks.com/`, { 
           method: 'GET',
           headers: { 'Accept': 'application/json' },
           signal: AbortSignal.timeout(500) // Abort after 500ms
@@ -122,7 +122,7 @@ class PythonApi {
           const data = await response.json();
           if (data && (data.service === 'Clara Backend' || data.status === 'ok' || data.status === 'healthy')) {
             this.port = port;
-            this.baseUrl = `http://65.0.11.70:${port}`;
+            this.baseUrl = `https://n8n.wizzgeeks.com`;
             this.initialized = true;
             console.log(`Detected API on port ${port}`);
             return;
@@ -137,7 +137,7 @@ class PythonApi {
     
     // If we couldn't detect the port, use port 5000 as default
     this.port = 5000;
-    this.baseUrl = `http://65.0.11.70:${this.port}`;
+    this.baseUrl = `https://n8n.wizzgeeks.com`;
     this.initialized = false;
     
     throw new Error('Failed to connect to the Python backend');

@@ -8,8 +8,8 @@ services:
     ports:
       - "8069:8069"
     environment:
-      - VITE_API_URL=http://65.0.11.70:5000
-      - VITE_N8N_URL=http://65.0.11.70:5678
+      - VITE_API_URL=https://n8n.wizzgeeks.com
+      - VITE_N8N_URL=https://n8n.wizzgeeks.com
     depends_on:
       - backend
       - n8n

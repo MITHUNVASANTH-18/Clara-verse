@@ -270,7 +270,7 @@ export default function Dashboard({ onPageChange }: DashboardProps) {
     setReconnectError(null);
     
     try {
-      const response = await fetch(`http://65.0.11.70:${pythonPort}/health`);
+      const response = await fetch(`https://n8n.wizzgeeks.com/health`);
       const health = await response.json();
       
       setPythonStatus(prev => ({

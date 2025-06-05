@@ -41,7 +41,7 @@
           "text"
         ],
         "config": {
-          "endpoint": "http://localhost:5678/webhook/7aba4f2e-2b06-4f0f-83bf-b26b2676caa9?query={{input}}",
+          "endpoint": "https://n8n.wizzgeeks.com/webhook/7aba4f2e-2b06-4f0f-83bf-b26b2676caa9?query={{input}}",
           "responseStatus": 200,
           "responseData": "[{\"output\":\"Hello! To better assist you, would you like to check your calendar for upcoming events today or in the next few days? Or perhaps you need help adding a new event?\"}]"
         }
