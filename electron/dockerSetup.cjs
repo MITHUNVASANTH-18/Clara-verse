@@ -654,13 +654,14 @@ class DockerSetup extends EventEmitter {
       console.log(`Checking Python health at https://n8n.wizzgeeks.com/health`);
       
       const response = await new Promise((resolve, reject) => {
-        const req = https.request({
+        // Try HTTPS first
+        const httpsReq = https.request({
           hostname: 'n8n.wizzgeeks.com',
           path: '/health',
           method: 'GET',
-          rejectUnauthorized: false // Disable SSL certificate verification for internal checks
+          rejectUnauthorized: false
         }, (res) => {
-          console.log(`Python health check status code: ${res.statusCode}`);
+          console.log(`Python HTTPS health check status code: ${res.statusCode}`);
           
           if (res.statusCode === 200) {
             let data = '';
@@ -679,23 +680,90 @@ class DockerSetup extends EventEmitter {
                 resolve(false);
               }
             });
+          } else if (res.statusCode === 301 || res.statusCode === 302) {
+            // Handle redirects
+            const location = res.headers.location;
+            if (location) {
+              console.log(`Following redirect to: ${location}`);
+              http.get(location, (redirectRes) => {
+                if (redirectRes.statusCode === 200) {
+                  resolve(true);
+                } else {
+                  resolve(false);
+                }
+              }).on('error', () => resolve(false));
+            } else {
+              resolve(false);
+            }
           } else {
-            reject(new Error(`Python health check failed with status ${res.statusCode}`));
+            // If HTTPS fails with non-200 status, try HTTP
+            console.log('HTTPS check failed, trying HTTP...');
+            const httpReq = http.request({
+              hostname: 'n8n.wizzgeeks.com',
+              path: '/health',
+              method: 'GET'
+            }, (httpRes) => {
+              if (httpRes.statusCode === 200) {
+                let data = '';
+                httpRes.on('data', chunk => {
+                  data += chunk;
+                });
+                httpRes.on('end', () => {
+                  try {
+                    const jsonResponse = JSON.parse(data);
+                    const isHealthy = jsonResponse.status === 'healthy' || jsonResponse.status === 'ok';
+                    resolve(isHealthy);
+                  } catch (e) {
+                    resolve(false);
+                  }
+                });
+              } else {
+                resolve(false);
+              }
+            });
+
+            httpReq.on('error', () => resolve(false));
+            httpReq.end();
           }
         });
 
-        req.on('error', (error) => {
-          console.error('Python health check request error:', error);
+        httpsReq.on('error', (error) => {
+          console.error('Python HTTPS health check error:', error);
+          // If HTTPS fails, try HTTP
+          const httpReq = http.request({
+            hostname: 'n8n.wizzgeeks.com',
+            path: '/health',
+            method: 'GET'
+          }, (res) => {
+            if (res.statusCode === 200) {
+              let data = '';
+              res.on('data', chunk => {
+                data += chunk;
+              });
+              res.on('end', () => {
+                try {
+                  const jsonResponse = JSON.parse(data);
+                  const isHealthy = jsonResponse.status === 'healthy' || jsonResponse.status === 'ok';
+                  resolve(isHealthy);
+                } catch (e) {
+                  resolve(false);
+                }
+              });
+            } else {
+              resolve(false);
+            }
+          });
+
+          httpReq.on('error', () => resolve(false));
+          httpReq.end();
+        });
+
+        httpsReq.setTimeout(5000, () => {
+          httpsReq.destroy();
           resolve(false);
         });
 
-        req.setTimeout(5000, () => {
-          console.error('Python health check timeout');
-          req.destroy();
-          resolve(false);
-        });
-
-        req.end();
+        httpsReq.end();
       });
 
       return response;
@@ -708,31 +776,68 @@ class DockerSetup extends EventEmitter {
   async checkN8NHealth() {
     try {
       const response = await new Promise((resolve, reject) => {
-        const req = https.request({
+        // Try HTTPS first
+        const httpsReq = https.request({
           hostname: 'n8n.wizzgeeks.com',
           path: '/healthz',
           method: 'GET',
-          rejectUnauthorized: false // Disable SSL certificate verification for internal checks
+          rejectUnauthorized: false
         }, (res) => {
           if (res.statusCode === 200) {
             resolve({ success: true });
+          } else if (res.statusCode === 301 || res.statusCode === 302) {
+            // Handle redirects
+            const location = res.headers.location;
+            if (location) {
+              console.log(`Following redirect to: ${location}`);
+              http.get(location, (redirectRes) => {
+                if (redirectRes.statusCode === 200) {
+                  resolve({ success: true });
+                } else {
+                  resolve({ success: false });
+                }
+              }).on('error', () => resolve({ success: false }));
+            } else {
+              resolve({ success: false });
+            }
           } else {
-            reject(new Error(`N8N health check failed with status ${res.statusCode}`));
+            // If HTTPS fails with non-200 status, try HTTP
+            const httpReq = http.request({
+              hostname: 'n8n.wizzgeeks.com',
+              path: '/healthz',
+              method: 'GET'
+            }, (httpRes) => {
+              resolve({ success: httpRes.statusCode === 200 });
+            });
+
+            httpReq.on('error', () => resolve({ success: false }));
+            httpReq.end();
           }
         });
 
-        req.on('error', (error) => {
-          console.error('N8N health check error:', error);
-          resolve({ success: false, error: error.message });
+        httpsReq.on('error', (error) => {
+          console.error('N8N HTTPS health check error:', error);
+          // If HTTPS fails, try HTTP
+          const httpReq = http.request({
+            hostname: 'n8n.wizzgeeks.com',
+            path: '/healthz',
+            method: 'GET'
+          }, (res) => {
+            resolve({ success: res.statusCode === 200 });
+          });
+
+          httpReq.on('error', () => resolve({ success: false }));
+          httpReq.end();
         });
 
-        req.setTimeout(5000, () => {
-          req.destroy();
-          resolve({ success: false, error: 'Timeout' });
+        httpsReq.setTimeout(5000, () => {
+          httpsReq.destroy();
+          resolve({ success: false });
         });
 
-        req.end();
+        httpsReq.end();
       });
+
       return response;
     } catch (error) {
       return { success: false, error: error.message };
