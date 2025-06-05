@@ -16,13 +16,23 @@ RUN apt-get update \
     && apt-get install -y \
         build-essential \
         curl \
+        git \
+        pkg-config \
+        python3-dev \
+        libssl-dev \
+        libffi-dev \
+        libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
-# Install dependencies with platform-specific optimizations
-RUN pip install --no-cache-dir -r requirements.txt && \
+# Upgrade pip and install dependencies with better error handling
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir wheel setuptools && \
+    pip install --no-cache-dir -r requirements.txt || \
+    (echo "Retrying pip install with verbose output..." && \
+     pip install --no-cache-dir -v -r requirements.txt) && \
     rm -rf /root/.cache/pip/*
 
 # Install spaCy and download the English model explicitly
