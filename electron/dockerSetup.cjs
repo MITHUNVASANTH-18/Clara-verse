@@ -654,7 +654,12 @@ class DockerSetup extends EventEmitter {
       console.log(`Checking Python health at https://n8n.wizzgeeks.com/health`);
       
       const response = await new Promise((resolve, reject) => {
-        const req = https.get(`https://n8n.wizzgeeks.com/health`, (res) => {
+        const req = https.request({
+          hostname: 'n8n.wizzgeeks.com',
+          path: '/health',
+          method: 'GET',
+          rejectUnauthorized: false // Disable SSL certificate verification for internal checks
+        }, (res) => {
           console.log(`Python health check status code: ${res.statusCode}`);
           
           if (res.statusCode === 200) {
@@ -689,6 +694,8 @@ class DockerSetup extends EventEmitter {
           req.destroy();
           resolve(false);
         });
+
+        req.end();
       });
 
       return response;
@@ -701,13 +708,30 @@ class DockerSetup extends EventEmitter {
   async checkN8NHealth() {
     try {
       const response = await new Promise((resolve, reject) => {
-        https.get(`https://n8n.wizzgeeks.com/healthz`, (res) => {
+        const req = https.request({
+          hostname: 'n8n.wizzgeeks.com',
+          path: '/healthz',
+          method: 'GET',
+          rejectUnauthorized: false // Disable SSL certificate verification for internal checks
+        }, (res) => {
           if (res.statusCode === 200) {
             resolve({ success: true });
           } else {
             reject(new Error(`N8N health check failed with status ${res.statusCode}`));
           }
-        }).on('error', (error) => reject(error));
+        });
+
+        req.on('error', (error) => {
+          console.error('N8N health check error:', error);
+          resolve({ success: false, error: error.message });
+        });
+
+        req.setTimeout(5000, () => {
+          req.destroy();
+          resolve({ success: false, error: 'Timeout' });
+        });
+
+        req.end();
       });
       return response;
     } catch (error) {
