@@ -6,6 +6,7 @@ const os = require('os');
 const { app } = require('electron');
 const tar = require('tar-fs');
 const http = require('http');
+const https = require('https');
 
 class DockerSetup extends EventEmitter {
   constructor() {
@@ -650,10 +651,10 @@ class DockerSetup extends EventEmitter {
         return false;
       }
 
-      console.log(`Checking Python health at http://localhost:${this.ports.python}/health`);
+      console.log(`Checking Python health at https://n8n.wizzgeeks.com/health`);
       
       const response = await new Promise((resolve, reject) => {
-        const req = http.get(`http://localhost:${this.ports.python}/health`, (res) => {
+        const req = https.get(`https://n8n.wizzgeeks.com/health`, (res) => {
           console.log(`Python health check status code: ${res.statusCode}`);
           
           if (res.statusCode === 200) {
@@ -700,7 +701,7 @@ class DockerSetup extends EventEmitter {
   async checkN8NHealth() {
     try {
       const response = await new Promise((resolve, reject) => {
-        http.get(`http://localhost:${this.ports.n8n}/healthz`, (res) => {
+        https.get(`https://n8n.wizzgeeks.com/healthz`, (res) => {
           if (res.statusCode === 200) {
             resolve({ success: true });
           } else {
